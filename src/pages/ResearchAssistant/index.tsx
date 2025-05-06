@@ -1,32 +1,88 @@
-import React, { useState } from 'react';
+import React, { useState, useRef, useEffect } from 'react';
 import styled from 'styled-components';
+import TopNavBar from '../../components/TopNavBar';
+import SideNavBar from '../../components/SideNavBar';
+import CollapsibleSidebar from '../../components/CollapsibleSidebar';
 import Message from '../../components/Chat/Message';
 import ChatInput from '../../components/Chat/ChatInput';
-import ChatHistory from '../../components/Chat/ChatHistory';
 
-const ChatContainer = styled.div`
+const PageContainer = styled.div`
   display: flex;
+  flex-direction: column;
   height: 100vh;
+  border: 1px solid #222;
 `;
 
-const ChatMain = styled.div`
+const MainArea = styled.div`
+  display: flex;
+  flex: 1;
+  border-top: 1px solid #222;
+  position: relative;
+`;
+
+const Content = styled.div`
   flex: 1;
   display: flex;
   flex-direction: column;
+  align-items: stretch;
+  justify-content: flex-start;
+  position: relative;
+  background: #fff;
+  border-left: 1px solid #222;
+  border-right: 1px solid #222;
+  transition: margin 0.3s cubic-bezier(.4,0,.2,1);
 `;
 
-const MessagesContainer = styled.div`
-  flex: 1;
+const ChatWindow = styled.div`
+  flex: 1 1 0;
+  display: flex;
+  flex-direction: column;
+  justify-content: flex-end;
+  width: 90%;
+  max-width: 1200px;
+  margin: 0 auto;
+  padding: 0 0 1.5rem 0;
+`;
+
+const MessagesList = styled.div`
+  flex: 1 1 0;
   overflow-y: auto;
-  padding: 1rem;
-  background: white;
+  padding: 2.5rem 1.5rem 1rem 1.5rem;
+  display: flex;
+  flex-direction: column;
+  gap: 0.5rem;
 `;
 
-const WelcomeMessage = styled.div`
+const Welcome = styled.div`
   text-align: center;
-  padding: 2rem;
-  color: #666;
+  margin-top: 4rem;
 `;
+
+const WelcomeTitle = styled.h1`
+  font-size: 3rem;
+  font-weight: 700;
+  margin-bottom: 0.5rem;
+`;
+
+const WelcomeSubtitle = styled.div`
+  font-size: 1.3rem;
+  color: #888;
+  font-weight: 400;
+`;
+
+const ChatInputContainer = styled.div`
+  width: 90%;
+  max-width: 1200px;
+  margin: 0 auto;
+  padding-bottom: 1.5rem;
+`;
+
+const navItems = [
+  { label: 'Start New Chat' },
+  { label: 'Chat History' },
+  { label: 'Documents' },
+  { label: 'Settings' },
+];
 
 interface Message {
   id: string;
@@ -48,6 +104,9 @@ const ResearchAssistant: React.FC = () => {
   const [activeConversation, setActiveConversation] = useState<string | undefined>();
   const [isLoading, setIsLoading] = useState(false);
   const [error, setError] = useState<string | null>(null);
+  const [leftCollapsed, setLeftCollapsed] = useState(false);
+  const [rightCollapsed, setRightCollapsed] = useState(true);
+  const messagesEndRef = useRef<HTMLDivElement>(null);
 
   const handleSendMessage = async (content: string) => {
     setError(null); // Clear previous errors
@@ -132,40 +191,59 @@ const ResearchAssistant: React.FC = () => {
     return conversation?.messages || [];
   };
 
+  // Scroll to bottom when messages change
+  useEffect(() => {
+    if (messagesEndRef.current) {
+      messagesEndRef.current.scrollIntoView({ behavior: 'smooth' });
+    }
+  }, [activeConversation, conversations]);
+
   return (
-    <ChatContainer>
-      <ChatHistory
-        conversations={conversations}
-        onSelect={handleSelectConversation}
-        onNewChat={handleNewChat}
-        activeId={activeConversation}
-      />
-      <ChatMain>
-        <MessagesContainer>
-          {!activeConversation ? (
-            <WelcomeMessage>
-              <h2>Welcome to Research Assistant</h2>
-              <p>How can I help you with your drug discovery research today?</p>
-            </WelcomeMessage>
-          ) : (
-            getCurrentMessages().map(message => (
-              <Message
-                key={message.id}
-                content={message.content}
-                isUser={message.isUser}
-                timestamp={message.timestamp}
-              />
-            ))
-          )}
-          {error && (
-            <div style={{ color: 'red', textAlign: 'center', marginTop: '1rem' }}>
-              {error} <button onClick={() => setError(null)}>Dismiss</button>
-            </div>
-          )}
-        </MessagesContainer>
-        <ChatInput onSend={handleSendMessage} disabled={isLoading} />
-      </ChatMain>
-    </ChatContainer>
+    <PageContainer>
+      <TopNavBar logoText="Research Assistant" profileInitials="PS" />
+      <MainArea>
+        <CollapsibleSidebar
+          collapsed={leftCollapsed}
+          onToggle={() => setLeftCollapsed((c) => !c)}
+          position="left"
+        >
+          <SideNavBar navItems={navItems} footerText="PxLS" />
+        </CollapsibleSidebar>
+        <Content>
+          <ChatWindow>
+            <MessagesList>
+              {!activeConversation ? (
+                <Welcome>
+                  <WelcomeTitle>Welcome to Research Assistant</WelcomeTitle>
+                  <WelcomeSubtitle>How can I help you with your Drug Discovery Research today?</WelcomeSubtitle>
+                </Welcome>
+              ) : (
+                getCurrentMessages().map(message => (
+                  <Message
+                    key={message.id}
+                    content={message.content}
+                    isUser={message.isUser}
+                    timestamp={message.timestamp}
+                  />
+                ))
+              )}
+              <div ref={messagesEndRef} />
+            </MessagesList>
+            <ChatInputContainer>
+              <ChatInput onSend={handleSendMessage} disabled={isLoading} />
+            </ChatInputContainer>
+          </ChatWindow>
+        </Content>
+        <CollapsibleSidebar
+          collapsed={rightCollapsed}
+          onToggle={() => setRightCollapsed((c) => !c)}
+          position="right"
+        >
+          {/* Placeholder for future network panel */}
+          <></>
+        </CollapsibleSidebar>
+      </MainArea>
+    </PageContainer>
   );
 };
 

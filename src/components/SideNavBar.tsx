@@ -18,11 +18,12 @@ const Sidebar = styled.div`
   border-right: 1px solid #e2cfa2;
   display: flex;
   flex-direction: column;
-  justify-content: space-between;
+  height: 100%;
 `;
 
 const NavSection = styled.div`
   padding: 2rem 0 0 0;
+  flex: 1 1 auto;
 `;
 
 const NavItemDiv = styled.div<{ active?: boolean }>`
@@ -42,23 +43,23 @@ const SidebarFooter = styled.div`
   font-weight: 700;
   font-size: 1.2rem;
   color: #222;
+  flex-shrink: 0;
+  margin-top: auto;
 `;
 
 const SideNavBar: React.FC<SideNavBarProps> = ({ navItems, footerText }) => (
   <Sidebar>
-    <div>
-      <NavSection>
-        {navItems.map((item, idx) => (
-          <NavItemDiv
-            key={item.label}
-            active={item.active}
-            onClick={item.onClick}
-          >
-            {item.label}
-          </NavItemDiv>
-        ))}
-      </NavSection>
-    </div>
+    <NavSection>
+      {navItems.map((item, idx) => (
+        <NavItemDiv
+          key={item.label}
+          active={item.active}
+          onClick={item.onClick}
+        >
+          {item.label}
+        </NavItemDiv>
+      ))}
+    </NavSection>
     <SidebarFooter>{footerText}</SidebarFooter>
   </Sidebar>
 );

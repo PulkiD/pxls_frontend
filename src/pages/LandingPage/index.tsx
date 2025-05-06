@@ -1,7 +1,8 @@
-import React from 'react';
+import React, { useState } from 'react';
 import styled from 'styled-components';
 import TopNavBar from '../../components/TopNavBar';
 import SideNavBar from '../../components/SideNavBar';
+import CollapsibleSidebar from '../../components/CollapsibleSidebar';
 import Placard from '../../components/Placard';
 
 const PageContainer = styled.div`
@@ -85,6 +86,8 @@ const services = [
 ];
 
 const LandingPage: React.FC = () => {
+  const [leftCollapsed, setLeftCollapsed] = useState(false);
+
   const handleServiceClick = (path: string) => {
     window.open(path, '_blank');
   };
@@ -102,7 +105,13 @@ const LandingPage: React.FC = () => {
     <PageContainer>
       <TopNavBar logoText="PhoenixLS" profileInitials="PS" onLogoClick={handleLogoClick} onProfileClick={handleProfileClick} />
       <MainArea>
-        <SideNavBar navItems={navItems} footerText="PxLS" />
+        <CollapsibleSidebar
+          collapsed={leftCollapsed}
+          onToggle={() => setLeftCollapsed((c) => !c)}
+          position="left"
+        >
+          <SideNavBar navItems={navItems} footerText="PxLS" />
+        </CollapsibleSidebar>
         <Content>
           <Welcome>
             <WelcomeTitle>Welcome to PhoenixLS</WelcomeTitle>
