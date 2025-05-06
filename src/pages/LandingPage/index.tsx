@@ -1,112 +1,128 @@
 import React from 'react';
 import styled from 'styled-components';
-import Button from '../../components/Button';
+import TopNavBar from '../../components/TopNavBar';
+import SideNavBar from '../../components/SideNavBar';
+import Placard from '../../components/Placard';
 
-const LandingPageContainer = styled.div`
-  padding: 2rem;
-  max-width: 1200px;
-  margin: 0 auto;
+const PageContainer = styled.div`
+  display: flex;
+  flex-direction: column;
+  height: 100vh;
 `;
 
-const Header = styled.header`
+const MainArea = styled.div`
+  display: flex;
+  flex: 1;
+`;
+
+const Content = styled.div`
+  flex: 1;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: flex-start;
+  padding: 2rem 0 0 0;
+`;
+
+const Welcome = styled.div`
   text-align: center;
-  margin-bottom: 3rem;
+  margin-bottom: 2rem;
 `;
 
-const Title = styled.h1`
-  font-size: 2.5rem;
-  color: #1a1a1a;
-  margin-bottom: 1rem;
+const WelcomeTitle = styled.h1`
+  font-size: 2.8rem;
+  font-weight: 500;
+  margin-bottom: 0.5rem;
 `;
 
-const Subtitle = styled.p`
-  font-size: 1.2rem;
-  color: #666;
+const WelcomeSubtitle = styled.div`
+  font-size: 1.3rem;
+  color: #888;
+  font-weight: 400;
 `;
 
 const ServiceGrid = styled.div`
   display: grid;
-  grid-template-columns: repeat(auto-fit, minmax(300px, 1fr));
-  gap: 2rem;
-  padding: 1rem;
+  grid-template-columns: repeat(3, 1fr);
+  gap: 2.5rem 2rem;
+  width: 100%;
+  max-width: 1100px;
 `;
 
-const ServiceCard = styled.div`
-  background: white;
-  border-radius: 8px;
-  padding: 2rem;
-  box-shadow: 0 4px 6px rgba(0, 0, 0, 0.1);
-  transition: all 0.3s ease;
-  cursor: pointer;
-  display: flex;
-  flex-direction: column;
-  gap: 1rem;
+const navItems = [
+  { label: 'Home' },
+  { label: 'Analytics' },
+  { label: 'Documents' },
+  { label: 'Settings' },
+];
 
-  &:hover {
-    transform: translateY(-5px);
-    box-shadow: 0 6px 12px rgba(0, 0, 0, 0.15);
-  }
-`;
-
-const ServiceTitle = styled.h2`
-  font-size: 1.5rem;
-  color: #1a1a1a;
-  margin: 0;
-`;
-
-const ServiceDescription = styled.p`
-  color: #666;
-  margin: 0;
-  flex: 1;
-`;
+const services = [
+  {
+    title: 'Research Assistant',
+    description: 'AI-powered chatbot for research assistance and drug discovery insights',
+    path: '/chat',
+  },
+  {
+    title: 'CSR Summarization',
+    description: 'AI-powered clinical study report summarization',
+    path: '/csr',
+  },
+  {
+    title: 'Molecular Discovery',
+    description: 'AI-powered generation of molecules with specified properties',
+    path: '/molecular',
+  },
+  {
+    title: 'Playground',
+    description: 'Drag-and-drop service creation for specific use-case leveraging our AI-powered modules',
+    path: '/playground',
+  },
+  {
+    title: 'KG Explorer',
+    description: 'Visualize our in-house developed biological KG',
+    path: '/kg',
+  },
+];
 
 const LandingPage: React.FC = () => {
-  const services = [
-    {
-      id: 1,
-      title: 'Research Assistant',
-      description: 'AI-powered chatbot for research assistance and drug discovery insights',
-      path: '/chat'
-    },
-    {
-      id: 2,
-      title: 'Drug Repurposing',
-      description: 'Discover new therapeutic applications for existing drugs through advanced analytics',
-      path: '/repurpose'
-    },
-    {
-      id: 3,
-      title: 'End-to-end Playground',
-      description: 'Interactive drug discovery workflow builder with drag-and-drop functionality',
-      path: '/playground'
-    }
-  ];
-
   const handleServiceClick = (path: string) => {
     window.open(path, '_blank');
   };
 
+  const handleLogoClick = () => {
+    window.location.href = '/';
+  };
+
+  const handleProfileClick = () => {
+    // Placeholder for future Keycloak integration
+    alert('Profile click: future login/profile integration');
+  };
+
   return (
-    <LandingPageContainer>
-      <Header>
-        <Title>Welcome to PhoenixLS</Title>
-        <Subtitle>Advanced Drug Discovery Platform</Subtitle>
-      </Header>
-      <ServiceGrid>
-        {services.map((service) => (
-          <ServiceCard
-            key={service.id}
-            onClick={() => handleServiceClick(service.path)}
-          >
-            <ServiceTitle>{service.title}</ServiceTitle>
-            <ServiceDescription>{service.description}</ServiceDescription>
-            <Button variant="outline" fullWidth>
-              Launch Service
-            </Button>
-          </ServiceCard>
-        ))}
-      </ServiceGrid>
-    </LandingPageContainer>
+    <PageContainer>
+      <TopNavBar logoText="PhoenixLS" profileInitials="PS" onLogoClick={handleLogoClick} onProfileClick={handleProfileClick} />
+      <MainArea>
+        <SideNavBar navItems={navItems} footerText="PxLS" />
+        <Content>
+          <Welcome>
+            <WelcomeTitle>Welcome to PhoenixLS</WelcomeTitle>
+            <WelcomeSubtitle>Advanced Drug Discovery & Development Platform</WelcomeSubtitle>
+          </Welcome>
+          <ServiceGrid>
+            {services.map((service) => (
+              <Placard
+                key={service.title}
+                title={service.title}
+                description={service.description}
+                buttonText="Launch Service"
+                onButtonClick={() => handleServiceClick(service.path)}
+              />
+            ))}
+            <Placard title="Coming Soon" comingSoon />
+          </ServiceGrid>
+        </Content>
+      </MainArea>
+    </PageContainer>
   );
 };
 
