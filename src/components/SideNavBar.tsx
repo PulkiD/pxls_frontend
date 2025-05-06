@@ -10,6 +10,8 @@ interface NavItem {
 interface SideNavBarProps {
   navItems: NavItem[];
   footerText: string;
+  chatHistoryDropdown?: React.ReactNode;
+  onStartNewChat?: () => void;
 }
 
 const Sidebar = styled.div`
@@ -47,10 +49,12 @@ const SidebarFooter = styled.div`
   margin-top: auto;
 `;
 
-const SideNavBar: React.FC<SideNavBarProps> = ({ navItems, footerText }) => (
+const SideNavBar: React.FC<SideNavBarProps> = ({ navItems, footerText, chatHistoryDropdown, onStartNewChat }) => (
   <Sidebar>
     <NavSection>
-      {navItems.map((item, idx) => (
+      {onStartNewChat && <NavItemDiv onClick={onStartNewChat}>Start New Chat</NavItemDiv>}
+      {chatHistoryDropdown}
+      {navItems.filter(item => item.label !== 'Start New Chat' && item.label !== 'Chat History').map((item, idx) => (
         <NavItemDiv
           key={item.label}
           active={item.active}

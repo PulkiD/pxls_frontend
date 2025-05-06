@@ -5,6 +5,7 @@ import SideNavBar from '../../components/SideNavBar';
 import CollapsibleSidebar from '../../components/CollapsibleSidebar';
 import Message from '../../components/Chat/Message';
 import ChatInput from '../../components/Chat/ChatInput';
+import ChatHistoryDropdown, { type ConversationSummary } from '../../components/Chat/ChatHistoryDropdown';
 
 const PageContainer = styled.div`
   display: flex;
@@ -78,8 +79,6 @@ const ChatInputContainer = styled.div`
 `;
 
 const navItems = [
-  { label: 'Start New Chat' },
-  { label: 'Chat History' },
   { label: 'Documents' },
   { label: 'Settings' },
 ];
@@ -191,6 +190,14 @@ const ResearchAssistant: React.FC = () => {
     return conversation?.messages || [];
   };
 
+  // Prepare conversation summaries for dropdown
+  const conversationSummaries: ConversationSummary[] = conversations.map(conv => ({
+    id: conv.id,
+    title: conv.title,
+    lastMessage: conv.lastMessage,
+    timestamp: conv.timestamp,
+  }));
+
   // Scroll to bottom when messages change
   useEffect(() => {
     if (messagesEndRef.current) {
@@ -198,16 +205,41 @@ const ResearchAssistant: React.FC = () => {
     }
   }, [activeConversation, conversations]);
 
+  const handleLogoClick = () => {
+    window.location.href = '/';
+  };
+
+  const handleProfileClick = () => {
+    // Placeholder for future Keycloak integration
+    alert('Profile click: future login/profile integration');
+  };
+
   return (
     <PageContainer>
-      <TopNavBar logoText="Research Assistant" profileInitials="PS" />
+      <TopNavBar
+        logoText="Research Assistant"
+        profileInitials="PS"
+        onLogoClick={handleLogoClick}
+        onProfileClick={handleProfileClick}
+      />
       <MainArea>
         <CollapsibleSidebar
           collapsed={leftCollapsed}
           onToggle={() => setLeftCollapsed((c) => !c)}
           position="left"
         >
-          <SideNavBar navItems={navItems} footerText="PxLS" />
+          <SideNavBar
+            navItems={navItems}
+            footerText="PxLS"
+            onStartNewChat={handleNewChat}
+            chatHistoryDropdown={
+              <ChatHistoryDropdown
+                conversations={conversationSummaries}
+                activeId={activeConversation}
+                onSelect={handleSelectConversation}
+              />
+            }
+          />
         </CollapsibleSidebar>
         <Content>
           <ChatWindow>
