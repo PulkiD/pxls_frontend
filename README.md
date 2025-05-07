@@ -38,22 +38,45 @@ pxls_frontend/
 └── package.json
 ```
 
-## Getting Started
+## Running Locally (Without Docker)
 
-1. Install dependencies:
+1. **Install dependencies:**
    ```bash
    npm install
    ```
 
-2. Start development server:
+2. **Start the development server:**
    ```bash
    npm run dev
    ```
+   The app will be available at [http://localhost:5173](http://localhost:5173) by default.
 
-3. Build for production:
+3. **Build for production:**
    ```bash
    npm run build
    ```
+   The production-ready files will be in the `dist/` directory.
+
+4. **Preview the production build locally:**
+   ```bash
+   npm run preview
+   ```
+
+## Running with Docker
+
+1. **Build the Docker image:**
+   ```bash
+   docker build -t pxls-frontend .
+   ```
+
+2. **Run the Docker container:**
+   ```bash
+   docker run -p 8080:80 pxls-frontend
+   ```
+   The app will be available at [http://localhost:8080](http://localhost:8080).
+
+- The Dockerfile uses a multi-stage build: it builds the React app with Node, then serves it with Nginx.
+- The `nginx.conf` is configured for single-page app routing and static asset caching.
 
 ## Environment Variables
 
