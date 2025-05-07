@@ -214,6 +214,7 @@ const KGExplorer: React.FC = () => {
   const [showGraph, setShowGraph] = useState(false);
   const [savedQueries, setSavedQueries] = useState<string[]>([]);
   const [savedDropdownOpen, setSavedDropdownOpen] = useState(true);
+  const [leftSidebarCollapsed, setLeftSidebarCollapsed] = useState(false);
 
   const handleQueryExecute = () => {
     setExecutedQuery(inputQuery);
@@ -250,8 +251,8 @@ const KGExplorer: React.FC = () => {
       />
       <MainArea>
         <CollapsibleSidebar
-          collapsed={false}
-          onToggle={() => {}}
+          collapsed={leftSidebarCollapsed}
+          onToggle={() => setLeftSidebarCollapsed(c => !c)}
           position="left"
         >
           <SideNavBar

@@ -12,6 +12,7 @@ interface ChatHistoryDropdownProps {
   conversations: ConversationSummary[];
   activeId?: string;
   onSelect: (id: string) => void;
+  title?: string;
 }
 
 const DropdownContainer = styled.div`
@@ -56,19 +57,19 @@ const Item = styled.div<{ active: boolean }>`
   }
 `;
 
-const ChatHistoryDropdown: React.FC<ChatHistoryDropdownProps> = ({ conversations, activeId, onSelect }) => {
+const ChatHistoryDropdown: React.FC<ChatHistoryDropdownProps> = ({ conversations, activeId, onSelect, title }) => {
   const [expanded, setExpanded] = useState(true);
 
   return (
     <DropdownContainer>
       <Header onClick={() => setExpanded(e => !e)}>
-        Chat History
+        {title || 'Chat History'}
         <Arrow expanded={expanded}>▼</Arrow>
       </Header>
       {expanded && (
         <List>
           {conversations.length === 0 ? (
-            <Item active={false} style={{ color: '#888', fontStyle: 'italic' }}>No previous chats</Item>
+            <Item active={false} style={{ color: '#888', fontStyle: 'italic' }}>No history</Item>
           ) : (
             conversations.map(conv => (
               <Item

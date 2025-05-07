@@ -7,6 +7,7 @@ const ResearchAssistant = lazy(() => import('../pages/ResearchAssistant'));
 const DrugRepurposing = lazy(() => import('../pages/DrugRepurposing'));
 const Playground = lazy(() => import('../pages/Playground'));
 const KGExplorer = lazy(() => import('../pages/KGExplorer'));
+const CSRSummary = lazy(() => import('../pages/CSRSummary'));
 
 export const services = [
   {
@@ -17,7 +18,7 @@ export const services = [
   {
     title: 'CSR Summarization',
     description: 'AI-powered clinical study report summarization',
-    path: '/csr',
+    path: '/csrsummary',
   },
   {
     title: 'Molecular Discovery',
@@ -56,5 +57,9 @@ export const router = createBrowserRouter([
   {
     path: '/kgexplorer',
     element: <KGExplorer />,
+  },
+  {
+    path: '/csrsummary',
+    element: <CSRSummary />,
   },
 ]); 
