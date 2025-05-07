@@ -6,6 +6,10 @@ import CollapsibleSidebar from '../../components/CollapsibleSidebar';
 import Message from '../../components/Chat/Message';
 import ChatInput from '../../components/Chat/ChatInput';
 import ChatHistoryDropdown, { type ConversationSummary } from '../../components/Chat/ChatHistoryDropdown';
+import Modal from '../../components/Modal';
+import GraphVisualization from '../../components/KGViz/GraphVisualization';
+// TODO: Replace with API data in the future. This is a placeholder for now.
+import sampleKG from '../../config/sample_kg_output.json';
 
 const PageContainer = styled.div`
   display: flex;
@@ -78,12 +82,81 @@ const ChatInputContainer = styled.div`
   padding-bottom: 1.5rem;
 `;
 
+const RightPanelContent = styled.div`
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  padding: 1.5rem 1rem 1rem 1rem;
+  height: 100%;
+  background: #fff;
+  border-left: 1px solid #222;
+`;
+
+const MiniGraphContainer = styled.div`
+  width: 220px;
+  height: 180px;
+  border: 1px solid #bbb;
+  border-radius: 10px;
+  background: #fff;
+  margin-bottom: 1.5rem;
+  overflow: hidden;
+`;
+
+const ExpandButton = styled.button`
+  width: 100%;
+  padding: 1rem;
+  background: #e3f0ff;
+  color: #222;
+  border: 1px solid #bcd;
+  border-radius: 10px;
+  font-size: 1.1rem;
+  font-weight: 500;
+  cursor: pointer;
+  margin-top: 1rem;
+  transition: background 0.2s;
+  &:hover {
+    background: #d0e7ff;
+  }
+`;
+
+const RightPanelHeader = styled.div`
+  width: 100%;
+  padding: 0.5rem 0.5rem 0.5rem 2.5rem;
+  font-size: 1rem;
+  font-weight: 500;
+  border-bottom: 1px solid #222;
+  background: #fff;
+`;
+
+const ModalFooter = styled.div`
+  width: 100%;
+  background: #f5f5f5;
+  border-top: 1px solid #ddd;
+  padding: 1.2rem 2.5rem;
+  display: flex;
+  flex-direction: row;
+  gap: 2.5rem;
+  align-items: center;
+  justify-content: flex-end;
+  min-height: 60px;
+`;
+
+const ModalGraphArea = styled.div`
+  flex: 1;
+  min-height: 0;
+  width: 100%;
+  background: #fff;
+  display: flex;
+  align-items: stretch;
+  justify-content: center;
+`;
+
 const navItems = [
   { label: 'Documents' },
   { label: 'Settings' },
 ];
 
-interface Message {
+interface MessageType {
   id: string;
   content: string;
   isUser: boolean;
@@ -93,7 +166,7 @@ interface Message {
 interface Conversation {
   id: string;
   title: string;
-  messages: Message[];
+  messages: MessageType[];
   lastMessage: string;
   timestamp: string;
 }
@@ -106,10 +179,11 @@ const ResearchAssistant: React.FC = () => {
   const [leftCollapsed, setLeftCollapsed] = useState(false);
   const [rightCollapsed, setRightCollapsed] = useState(true);
   const messagesEndRef = useRef<HTMLDivElement>(null);
+  const [showGraphModal, setShowGraphModal] = useState(false);
 
   const handleSendMessage = async (content: string) => {
-    setError(null); // Clear previous errors
-    const newMessage: Message = {
+    setError(null);
+    const newMessage: MessageType = {
       id: Date.now().toString(),
       content,
       isUser: true,
@@ -117,7 +191,6 @@ const ResearchAssistant: React.FC = () => {
     };
 
     if (!activeConversation) {
-      // Create new conversation
       const newConversation: Conversation = {
         id: Date.now().toString(),
         title: content.slice(0, 30) + (content.length > 30 ? '...' : ''),
@@ -128,7 +201,6 @@ const ResearchAssistant: React.FC = () => {
       setConversations(prev => [...prev, newConversation]);
       setActiveConversation(newConversation.id);
     } else {
-      // Update existing conversation
       setConversations(prev => prev.map(conv => {
         if (conv.id === activeConversation) {
           return {
@@ -143,22 +215,18 @@ const ResearchAssistant: React.FC = () => {
     }
 
     setIsLoading(true);
-
-    // Simulate API call with possible error
     setTimeout(() => {
-      // 20% chance of error
       if (Math.random() < 0.2) {
         setError('Failed to send message. Please try again.');
         setIsLoading(false);
         return;
       }
-      const response: Message = {
+      const response: MessageType = {
         id: (Date.now() + 1).toString(),
         content: 'This is a simulated response. In a real application, this would come from the backend API.',
         isUser: false,
         timestamp: new Date().toLocaleTimeString()
       };
-
       setConversations(prev => prev.map(conv => {
         if (conv.id === activeConversation) {
           return {
@@ -190,7 +258,6 @@ const ResearchAssistant: React.FC = () => {
     return conversation?.messages || [];
   };
 
-  // Prepare conversation summaries for dropdown
   const conversationSummaries: ConversationSummary[] = conversations.map(conv => ({
     id: conv.id,
     title: conv.title,
@@ -198,7 +265,6 @@ const ResearchAssistant: React.FC = () => {
     timestamp: conv.timestamp,
   }));
 
-  // Scroll to bottom when messages change
   useEffect(() => {
     if (messagesEndRef.current) {
       messagesEndRef.current.scrollIntoView({ behavior: 'smooth' });
@@ -210,7 +276,6 @@ const ResearchAssistant: React.FC = () => {
   };
 
   const handleProfileClick = () => {
-    // Placeholder for future Keycloak integration
     alert('Profile click: future login/profile integration');
   };
 
@@ -270,10 +335,25 @@ const ResearchAssistant: React.FC = () => {
           collapsed={rightCollapsed}
           onToggle={() => setRightCollapsed((c) => !c)}
           position="right"
+          width={320}
         >
-          {/* Placeholder for future network panel */}
-          <></>
+          <RightPanelHeader>PxLS Knowledge Graph</RightPanelHeader>
+          <RightPanelContent>
+            <MiniGraphContainer>
+              <GraphVisualization data={sampleKG as any} hideControls={true} />
+            </MiniGraphContainer>
+            <ExpandButton onClick={() => setShowGraphModal(true)}>
+              Click to Expand
+            </ExpandButton>
+          </RightPanelContent>
         </CollapsibleSidebar>
+        <Modal open={showGraphModal} onClose={() => setShowGraphModal(false)}>
+          <ModalGraphArea>
+            <GraphVisualization data={sampleKG as any} hideControls={false} />
+          </ModalGraphArea>
+          <ModalFooter>
+          </ModalFooter>
+        </Modal>
       </MainArea>
     </PageContainer>
   );
