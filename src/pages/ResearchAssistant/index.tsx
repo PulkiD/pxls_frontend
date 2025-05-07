@@ -294,10 +294,12 @@ const ResearchAssistant: React.FC = () => {
           position="left"
         >
           <SideNavBar
-            navItems={navItems}
+            navItems={[
+              { label: 'Start New Chat', onClick: handleNewChat },
+              ...navItems
+            ]}
             footerText="PxLS"
-            onStartNewChat={handleNewChat}
-            chatHistoryDropdown={
+            extraSections={
               <ChatHistoryDropdown
                 conversations={conversationSummaries}
                 activeId={activeConversation}

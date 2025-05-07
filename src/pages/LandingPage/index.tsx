@@ -4,6 +4,7 @@ import TopNavBar from '../../components/TopNavBar';
 import SideNavBar from '../../components/SideNavBar';
 import CollapsibleSidebar from '../../components/CollapsibleSidebar';
 import Placard from '../../components/Placard';
+import { services } from '../../router';
 
 const PageContainer = styled.div`
   display: flex;
@@ -57,33 +58,11 @@ const navItems = [
   { label: 'Settings' },
 ];
 
-const services = [
-  {
-    title: 'Research Assistant',
-    description: 'AI-powered chatbot for research assistance and drug discovery insights',
-    path: '/chat',
-  },
-  {
-    title: 'CSR Summarization',
-    description: 'AI-powered clinical study report summarization',
-    path: '/csr',
-  },
-  {
-    title: 'Molecular Discovery',
-    description: 'AI-powered generation of molecules with specified properties',
-    path: '/molecular',
-  },
-  {
-    title: 'Playground',
-    description: 'Drag-and-drop service creation for specific use-case leveraging our AI-powered modules',
-    path: '/playground',
-  },
-  {
-    title: 'KG Explorer',
-    description: 'Visualize our in-house developed biological KG',
-    path: '/kg',
-  },
-];
+type Service = {
+  title: string;
+  description: string;
+  path: string;
+};
 
 const LandingPage: React.FC = () => {
   const [leftCollapsed, setLeftCollapsed] = useState(false);
@@ -118,7 +97,7 @@ const LandingPage: React.FC = () => {
             <WelcomeSubtitle>Advanced Drug Discovery & Development Platform</WelcomeSubtitle>
           </Welcome>
           <ServiceGrid>
-            {services.map((service) => (
+            {(services as Service[]).map((service) => (
               <Placard
                 key={service.title}
                 title={service.title}
