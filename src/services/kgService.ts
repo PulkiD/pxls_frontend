@@ -1,5 +1,5 @@
 import axios from 'axios';
-import type { GraphData } from '../components/KGViz/types';
+import type { GraphData } from '../types/GraphVisualization_types';
 
 export async function fetchKnowledgeGraph(query: string): Promise<GraphData> {
   const useMock = import.meta.env.VITE_USE_MOCK_API === 'true';

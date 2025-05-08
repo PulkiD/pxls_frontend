@@ -1,6 +1,6 @@
 import { useQuery } from '@tanstack/react-query';
 import { fetchKnowledgeGraph } from '../services/kgService';
-import type { GraphData } from '../components/KGViz/types';
+import type { GraphData } from '../types/GraphVisualization_types';
 
 export function useKnowledgeGraph(query: string | null) {
   return useQuery<GraphData, Error>({

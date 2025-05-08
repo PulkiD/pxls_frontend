@@ -91,4 +91,26 @@ const ErrorHandlers: React.FC<ErrorHandlersProps> = ({ error, info }) => {
   );
 };
 
-export default ErrorHandlers; 
+export default ErrorHandlers;
+
+export class ErrorBoundary extends React.Component<{ children: React.ReactNode }, { error: Error | null, info: any }> {
+  constructor(props: { children: React.ReactNode }) {
+    super(props);
+    this.state = { error: null, info: null };
+  }
+
+  static getDerivedStateFromError(error: Error) {
+    return { error, info: null };
+  }
+
+  componentDidCatch(error: Error, info: any) {
+    this.setState({ error, info });
+  }
+
+  render() {
+    if (this.state.error) {
+      return <ErrorHandlers error={this.state.error} info={this.state.info} />;
+    }
+    return this.props.children;
+  }
+} 

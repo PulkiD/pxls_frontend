@@ -2,6 +2,7 @@ import { Suspense } from 'react';
 import { RouterProvider } from 'react-router-dom';
 import { router } from './router';
 import styled from 'styled-components';
+import { ErrorBoundary } from './pages/ErrorUI/ErrorHandlers';
 
 const AppContainer = styled.div`
   min-height: 100vh;
@@ -20,9 +21,11 @@ const LoadingFallback = styled.div`
 function App() {
   return (
     <AppContainer>
-      <Suspense fallback={<LoadingFallback>Loading...</LoadingFallback>}>
-        <RouterProvider router={router} />
-      </Suspense>
+      <ErrorBoundary>
+        <Suspense fallback={<LoadingFallback>Loading...</LoadingFallback>}>
+          <RouterProvider router={router} />
+        </Suspense>
+      </ErrorBoundary>
     </AppContainer>
   );
 }
