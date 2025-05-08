@@ -79,6 +79,11 @@ const MainGraphArea = styled.div`
 `;
 
 const GraphVisualization: React.FC<GraphVisualizationProps> = ({ data, searchQuery, evolutionYear: evolutionYearProp, hideControls = false }) => {
+  // Defensive: If data is missing or malformed, show an error message
+  if (!data || !Array.isArray(data.nodes) || !Array.isArray(data.relationships)) {
+    return <div style={{ color: 'red', padding: '2rem', textAlign: 'center' }}>Invalid or missing graph data.</div>;
+  }
+
   const svgRef = useRef<SVGSVGElement>(null);
   const [selectedNode, setSelectedNode] = useState<NodeInfo | null>(null);
   const [selectedEdge, setSelectedEdge] = useState<EdgeInfo | null>(null);

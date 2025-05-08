@@ -1,5 +1,6 @@
 import { createBrowserRouter } from 'react-router-dom';
 import { lazy } from 'react';
+import ErrorHandlers from '../pages/ErrorUI/ErrorHandlers';
 
 // Lazy load pages for better performance
 const LandingPage = lazy(() => import('../pages/LandingPage'));
@@ -41,25 +42,31 @@ export const router = createBrowserRouter([
   {
     path: '/',
     element: <LandingPage />,
+    errorElement: <ErrorHandlers error={{ message: 'An error occurred on the landing page.' }} />,
   },
   {
     path: '/chat',
     element: <ResearchAssistant />,
+    errorElement: <ErrorHandlers error={{ message: 'An error occurred in Research Assistant.' }} />,
   },
   {
     path: '/repurpose',
     element: <DrugRepurposing />,
+    errorElement: <ErrorHandlers error={{ message: 'An error occurred in Drug Repurposing.' }} />,
   },
   {
     path: '/playground',
     element: <Playground />,
+    errorElement: <ErrorHandlers error={{ message: 'An error occurred in Playground.' }} />,
   },
   {
     path: '/kgexplorer',
     element: <KGExplorer />,
+    errorElement: <ErrorHandlers error={{ message: 'An error occurred in KG Explorer.' }} />,
   },
   {
     path: '/csrsummary',
     element: <CSRSummary />,
+    errorElement: <ErrorHandlers error={{ message: 'An error occurred in CSR Summarization.' }} />,
   },
 ]); 

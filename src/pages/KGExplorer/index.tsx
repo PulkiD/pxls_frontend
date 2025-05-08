@@ -4,7 +4,7 @@ import TopNavBar from '../../components/TopNavBar';
 import SideNavBar from '../../components/SideNavBar';
 import CollapsibleSidebar from '../../components/CollapsibleSidebar';
 import GraphVisualization from '../../components/KGViz/GraphVisualization';
-import sampleKG from '../../config/sample_kg_output.json';
+import { useKnowledgeGraph } from '../../hooks/useKnowledgeGraph';
 
 const PageContainer = styled.div`
   display: flex;
@@ -216,6 +216,9 @@ const KGExplorer: React.FC = () => {
   const [savedDropdownOpen, setSavedDropdownOpen] = useState(true);
   const [leftSidebarCollapsed, setLeftSidebarCollapsed] = useState(false);
 
+  // Use the custom hook for fetching graph data
+  const { data: graphData, isLoading, error, refetch } = useKnowledgeGraph(executedQuery);
+
   const handleQueryExecute = () => {
     setExecutedQuery(inputQuery);
     setShowGraph(true);
@@ -287,7 +290,9 @@ const KGExplorer: React.FC = () => {
         </CollapsibleSidebar>
         <Content>
           <MainGraphArea>
-            {showGraph ? (
+            {isLoading && <div>Loading graph...</div>}
+            {error && <div style={{ color: 'red', fontWeight: 500 }}>Error: {error.message}</div>}
+            {graphData && Array.isArray(graphData.nodes) && Array.isArray(graphData.relationships) && !isLoading && !error && (
               <>
                 <SaveButton
                   title={isQuerySaved ? 'Query saved' : 'Save this query'}
@@ -297,10 +302,11 @@ const KGExplorer: React.FC = () => {
                   {isQuerySaved ? '★' : '☆'}
                 </SaveButton>
                 <div style={{ width: '100%', height: '100%' }}>
-                  <GraphVisualization data={sampleKG as any} />
+                  <GraphVisualization data={graphData} />
                 </div>
               </>
-            ) : (
+            )}
+            {!graphData && !isLoading && !error && !executedQuery && (
               <Welcome>
                 <WelcomeTitle>Knowledge Graph Explorer</WelcomeTitle>
                 <WelcomeSubtitle>How can I help you with your Drug Discovery Research today?</WelcomeSubtitle>

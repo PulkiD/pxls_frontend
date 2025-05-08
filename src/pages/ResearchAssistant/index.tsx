@@ -9,7 +9,7 @@ import ChatHistoryDropdown, { type ConversationSummary } from '../../components/
 import Modal from '../../components/Modal';
 import GraphVisualization from '../../components/KGViz/GraphVisualization';
 // TODO: Replace with API data in the future. This is a placeholder for now.
-import sampleKG from '../../config/sample_kg_output.json';
+import sampleKG from '../../services/dummydata/sample_kg_output.json';
 
 const PageContainer = styled.div`
   display: flex;
