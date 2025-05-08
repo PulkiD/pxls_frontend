@@ -1,11 +1,11 @@
 import React, { useEffect, useRef, useState } from 'react';
 import * as d3 from 'd3';
 // Assuming types are in a 'types' folder relative to the component or project root
-import type { GraphData, Node, Relationship } from '../../types/GraphVisualization_types';
+import type { GraphData, Node, Relationship } from '../../types/GraphVisualization.types';
 import EvolutionControl from '../../features/NetworkEvolution/EvolutionControl'; // Re-add import
 
 // Assuming config is in a 'config' folder relative to the component or project root
-import { getNodeColors } from '../../config/kgviz'; // Adjust path as needed
+import { getNodeColors } from '../../constants/kgviz.constants'; // Adjust path as needed
 
 import styled from 'styled-components';
 

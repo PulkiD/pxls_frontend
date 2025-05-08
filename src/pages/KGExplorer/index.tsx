@@ -5,6 +5,7 @@ import SideNavBar from '../../components/SideNavBar';
 import CollapsibleSidebar from '../../components/CollapsibleSidebar';
 import GraphVisualization from '../../components/KGViz/GraphVisualization';
 import { useKnowledgeGraph } from '../../hooks/useKnowledgeGraph';
+import type { SavedQuery } from '../../types/kgApi.types';
 
 const PageContainer = styled.div`
   display: flex;
@@ -159,12 +160,6 @@ const Item = styled.div<{ active: boolean }>`
   }
 `;
 
-const navItems = [
-  { label: 'Search New Query' },
-  { label: 'Documents' },
-  { label: 'Settings' },
-];
-
 // Dedicated QueryInput component
 const QueryInput: React.FC<{
   value: string;
@@ -212,36 +207,88 @@ const KGExplorer: React.FC = () => {
   const [inputQuery, setInputQuery] = useState('');
   const [executedQuery, setExecutedQuery] = useState<string | null>(null);
   const [showGraph, setShowGraph] = useState(false);
-  const [savedQueries, setSavedQueries] = useState<string[]>([]);
-  const [savedDropdownOpen, setSavedDropdownOpen] = useState(true);
   const [leftSidebarCollapsed, setLeftSidebarCollapsed] = useState(false);
+  const [savedDropdownOpen, setSavedDropdownOpen] = useState(true);
 
-  // Use the custom hook for fetching graph data
-  const { data: graphData, isLoading, error, refetch } = useKnowledgeGraph(executedQuery);
+  const {
+    graphData,
+    isLoading,
+    error,
+    savedQueries,
+    loadingSavedQueries,
+    saveQuery,
+    deleteQuery,
+    isSaving,
+    isDeleting,
+  } = useKnowledgeGraph(executedQuery);
+
+  const navItems = [
+    { 
+      label: 'Search New Query',
+      onClick: () => {
+        setInputQuery('');
+        setExecutedQuery(null);
+        setShowGraph(false);
+      }
+    },
+    { 
+      label: 'Documents',
+      onClick: () => {
+        // TODO: Implement documents view
+        console.log('Documents clicked');
+      }
+    },
+    { 
+      label: 'Settings',
+      onClick: () => {
+        // TODO: Implement settings view
+        console.log('Settings clicked');
+      }
+    },
+  ];
 
   const handleQueryExecute = () => {
+    if (!inputQuery.trim()) return;
     setExecutedQuery(inputQuery);
     setShowGraph(true);
-    // In the future, trigger API call here and set graph data from response
   };
 
   const handleInputChange = (e: React.ChangeEvent<HTMLInputElement>) => {
     setInputQuery(e.target.value);
   };
 
-  const handleSaveQuery = () => {
-    if (executedQuery && !savedQueries.includes(executedQuery)) {
-      setSavedQueries(prev => [executedQuery, ...prev]);
+  const handleSaveQuery = async () => {
+    if (!executedQuery) return;
+    
+    try {
+      await saveQuery({
+        queryText: executedQuery,
+        description: `Query about ${executedQuery}`,
+        tags: ['saved'],
+      });
+    } catch (error) {
+      console.error('Failed to save query:', error);
+      // You might want to show a toast notification here
     }
   };
 
-  const handleSavedQueryClick = (query: string) => {
-    setExecutedQuery(query);
+  const handleSavedQueryClick = (query: SavedQuery) => {
+    setExecutedQuery(query.queryText);
+    setInputQuery(query.queryText);
     setShowGraph(true);
-    setInputQuery(query);
   };
 
-  const isQuerySaved = executedQuery && savedQueries.includes(executedQuery);
+  const handleDeleteQuery = async (queryId: string, event: React.MouseEvent) => {
+    event.stopPropagation();
+    try {
+      await deleteQuery(queryId);
+    } catch (error) {
+      console.error('Failed to delete query:', error);
+      // You might want to show a toast notification here
+    }
+  };
+
+  const isQuerySaved = executedQuery && savedQueries.some(q => q.queryText === executedQuery);
   const isSearchDisabled = inputQuery.trim() === '' || inputQuery === executedQuery;
 
   return (
@@ -269,16 +316,33 @@ const KGExplorer: React.FC = () => {
                 </Header>
                 {savedDropdownOpen && (
                   <List>
-                    {savedQueries.length === 0 ? (
+                    {loadingSavedQueries ? (
+                      <Item active={false} style={{ color: '#888', fontStyle: 'italic' }}>Loading...</Item>
+                    ) : savedQueries.length === 0 ? (
                       <Item active={false} style={{ color: '#888', fontStyle: 'italic' }}>No saved queries</Item>
                     ) : (
-                      savedQueries.map((query, idx) => (
+                      savedQueries.map((query) => (
                         <Item
-                          key={idx}
+                          key={query.id}
                           active={false}
                           onClick={() => handleSavedQueryClick(query)}
+                          style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}
                         >
-                          {query}
+                          <span style={{ flex: 1 }}>{query.queryText}</span>
+                          <button
+                            onClick={(e) => handleDeleteQuery(query.id, e)}
+                            style={{
+                              background: 'none',
+                              border: 'none',
+                              color: '#666',
+                              cursor: 'pointer',
+                              padding: '4px',
+                              marginLeft: '8px',
+                            }}
+                            title="Delete query"
+                          >
+                            ×
+                          </button>
                         </Item>
                       ))
                     )}
@@ -297,7 +361,12 @@ const KGExplorer: React.FC = () => {
                 <SaveButton
                   title={isQuerySaved ? 'Query saved' : 'Save this query'}
                   onClick={handleSaveQuery}
-                  style={{ color: isQuerySaved ? '#2563eb' : '#888' }}
+                  style={{ 
+                    color: isQuerySaved ? '#2563eb' : '#888',
+                    opacity: isSaving ? 0.5 : 1,
+                    cursor: isSaving ? 'not-allowed' : 'pointer',
+                  }}
+                  disabled={isSaving}
                 >
                   {isQuerySaved ? '★' : '☆'}
                 </SaveButton>

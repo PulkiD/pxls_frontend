@@ -4,6 +4,8 @@ const DEFAULT_NODE_COLORS: { [key: string]: string } = {
     disease: '#4ECDC4',  // bright turquoise
     drug: '#45B7D1',    // bright blue
     pathway: '#96CEB4',   // bright sage green
+    protein: '#FFD93D',   // bright yellow
+    compound: '#9B59B6',  // purple
     // Add other default node types and their colors as needed
   };
   

@@ -1,5 +1,5 @@
 import axios from 'axios';
-import sampleKG from '../services/dummydata/sample_kg_output.json';
+import sampleKG from '../services/mockData/sample_kg_output.json';
 const useMock = import.meta.env.VITE_USE_MOCK_API === 'true';
 
 // In-memory mock store for demo purposes
@@ -36,7 +36,7 @@ function createBotResponse(userMessage: string) {
   };
 }
 
-function createGraphData() {
+function createMockGraphData() {
   // Optionally return graphData for some messages
   return Math.random() < 0.5 ? undefined : sampleKG;
 }
@@ -53,7 +53,7 @@ export async function sendMessage({ conversationId, message }: { conversationId?
         timestamp: getNowISO(),
       };
       const botMsg = createBotResponse(message);
-      const graphData = createGraphData();
+      const graphData = createMockGraphData();
       mockConversations[newId] = {
         id: newId,
         title: message.slice(0, 30) + (message.length > 30 ? '...' : ''),
@@ -79,7 +79,7 @@ export async function sendMessage({ conversationId, message }: { conversationId?
       timestamp: getNowISO(),
     };
     const botMsg = createBotResponse(message);
-    const graphData = createGraphData();
+    const graphData = createMockGraphData();
     conv.messages.push(userMsg, botMsg);
     conv.lastMessage = botMsg.content;
     conv.timestamp = getNowISO();
