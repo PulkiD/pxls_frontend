@@ -12,6 +12,7 @@ interface ChatHistoryDropdownProps {
   conversations: ConversationSummary[];
   activeId?: string;
   onSelect: (id: string) => void;
+  onDelete?: (id: string) => void;
   title?: string;
 }
 
@@ -44,6 +45,28 @@ const List = styled.div`
   overflow-y: auto;
 `;
 
+const ItemContainer = styled.div`
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  width: 100%;
+`;
+
+const DeleteButton = styled.button`
+  background: none;
+  border: none;
+  color: #666;
+  cursor: pointer;
+  padding: 0 0.5rem;
+  font-size: 1.2rem;
+  opacity: 0;
+  transition: opacity 0.2s;
+  
+  &:hover {
+    color: #ff4444;
+  }
+`;
+
 const Item = styled.div<{ active: boolean }>`
   padding: 0.7rem 1rem;
   cursor: pointer;
@@ -52,13 +75,30 @@ const Item = styled.div<{ active: boolean }>`
   font-size: 1rem;
   font-weight: ${({ active }) => (active ? 600 : 400)};
   color: #222;
+  width: 100%;
+  
   &:hover {
     background: #f0f0f0;
+    
+    ${DeleteButton} {
+      opacity: 1;
+    }
   }
 `;
 
-const ChatHistoryDropdown: React.FC<ChatHistoryDropdownProps> = ({ conversations, activeId, onSelect, title }) => {
+const ChatHistoryDropdown: React.FC<ChatHistoryDropdownProps> = ({ 
+  conversations, 
+  activeId, 
+  onSelect, 
+  onDelete,
+  title 
+}) => {
   const [expanded, setExpanded] = useState(true);
+
+  const handleDelete = (e: React.MouseEvent, id: string) => {
+    e.stopPropagation();
+    onDelete?.(id);
+  };
 
   return (
     <DropdownContainer>
@@ -77,7 +117,14 @@ const ChatHistoryDropdown: React.FC<ChatHistoryDropdownProps> = ({ conversations
                 active={conv.id === activeId}
                 onClick={() => onSelect(conv.id)}
               >
-                {conv.title}
+                <ItemContainer>
+                  {conv.title}
+                  {onDelete && (
+                    <DeleteButton onClick={(e) => handleDelete(e, conv.id)}>
+                      ×
+                    </DeleteButton>
+                  )}
+                </ItemContainer>
               </Item>
             ))
           )}

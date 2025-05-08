@@ -8,7 +8,7 @@ import ChatInput from '../../components/Chat/ChatInput';
 import ChatHistoryDropdown, { type ConversationSummary } from '../../components/Chat/ChatHistoryDropdown';
 import Modal from '../../components/Modal';
 import GraphVisualization from '../../components/KGViz/GraphVisualization';
-import { useConversationSummaries, useConversationDetails, useSendMessage } from '../../hooks/useChat';
+import { useConversationSummaries, useConversationDetails, useSendMessage, useDeleteConversation } from '../../hooks/useChat';
 
 
 const PageContainer = styled.div`
@@ -183,6 +183,7 @@ const ResearchAssistant: React.FC = () => {
   const { data: conversationSummaries = [], isLoading: loadingSummaries } = useConversationSummaries();
   const { data: conversationDetails, isLoading: loadingDetails } = useConversationDetails(activeConversation);
   const sendMessageMutation = useSendMessage();
+  const deleteConversationMutation = useDeleteConversation();
 
   useEffect(() => {
     if (messagesEndRef.current) {
@@ -225,6 +226,18 @@ const ResearchAssistant: React.FC = () => {
     alert('Profile click: future login/profile integration');
   };
 
+  const handleDeleteConversation = (id: string) => {
+    deleteConversationMutation.mutate(id, {
+      onSuccess: () => {
+        // If the deleted conversation was active, clear it
+        if (activeConversation === id) {
+          setActiveConversation(undefined);
+          setCurrentGraphData(null);
+        }
+      }
+    });
+  };
+
   return (
     <PageContainer>
       <TopNavBar
@@ -250,6 +263,7 @@ const ResearchAssistant: React.FC = () => {
                 conversations={conversationSummaries}
                 activeId={activeConversation}
                 onSelect={handleSelectConversation}
+                onDelete={handleDeleteConversation}
               />
             }
           />

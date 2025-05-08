@@ -34,4 +34,17 @@ export function useSendMessage() {
       }
     },
   });
+}
+
+export function useDeleteConversation() {
+  const queryClient = useQueryClient();
+  return useMutation({
+    mutationFn: chatService.deleteConversation,
+    onSuccess: (data) => {
+      // Invalidate queries to refresh summaries
+      queryClient.invalidateQueries({ queryKey: ['chat', 'summaries'] });
+      // Also invalidate the specific conversation details if it exists
+      queryClient.invalidateQueries({ queryKey: ['chat', 'conversation', data.conversationId] });
+    },
+  });
 } 

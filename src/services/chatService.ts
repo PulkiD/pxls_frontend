@@ -131,4 +131,19 @@ export async function getConversationDetails(conversationId: string) {
   }
   const response = await axios.get(`${import.meta.env.VITE_API_BASE_URL}/api/assistant/conversations/${conversationId}`);
   return response.data;
+}
+
+export async function deleteConversation(conversationId: string) {
+  if (useMock) {
+    if (!mockConversations[conversationId]) {
+      throw new Error('Conversation not found');
+    }
+    delete mockConversations[conversationId];
+    mockConversationOrder = mockConversationOrder.filter(id => id !== conversationId);
+    saveMockData();
+    return { success: true, conversationId };
+  }
+  // Real API
+  const response = await axios.delete(`${import.meta.env.VITE_API_BASE_URL}/api/assistant/conversations/${conversationId}`);
+  return response.data;
 } 
