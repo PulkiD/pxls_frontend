@@ -8,6 +8,7 @@ import ChatInput from '../../components/Chat/ChatInput';
 import ChatHistoryDropdown, { type ConversationSummary } from '../../components/Chat/ChatHistoryDropdown';
 import Modal from '../../components/Modal';
 import GraphVisualization from '../../components/KGViz/GraphVisualization';
+import { useConversationSummaries, useConversationDetails, useSendMessage } from '../../hooks/useChat';
 // TODO: Replace with API data in the future. This is a placeholder for now.
 import sampleKG from '../../services/dummydata/sample_kg_output.json';
 
@@ -172,104 +173,50 @@ interface Conversation {
 }
 
 const ResearchAssistant: React.FC = () => {
-  const [conversations, setConversations] = useState<Conversation[]>([]);
   const [activeConversation, setActiveConversation] = useState<string | undefined>();
-  const [isLoading, setIsLoading] = useState(false);
-  const [error, setError] = useState<string | null>(null);
   const [leftCollapsed, setLeftCollapsed] = useState(false);
   const [rightCollapsed, setRightCollapsed] = useState(true);
-  const messagesEndRef = useRef<HTMLDivElement>(null);
   const [showGraphModal, setShowGraphModal] = useState(false);
+  const [currentGraphData, setCurrentGraphData] = useState<any>(null);
+  const messagesEndRef = useRef<HTMLDivElement>(null);
 
-  const handleSendMessage = async (content: string) => {
-    setError(null);
-    const newMessage: MessageType = {
-      id: Date.now().toString(),
-      content,
-      isUser: true,
-      timestamp: new Date().toLocaleTimeString()
-    };
-
-    if (!activeConversation) {
-      const newConversation: Conversation = {
-        id: Date.now().toString(),
-        title: content.slice(0, 30) + (content.length > 30 ? '...' : ''),
-        messages: [newMessage],
-        lastMessage: content,
-        timestamp: new Date().toLocaleString()
-      };
-      setConversations(prev => [...prev, newConversation]);
-      setActiveConversation(newConversation.id);
-    } else {
-      setConversations(prev => prev.map(conv => {
-        if (conv.id === activeConversation) {
-          return {
-            ...conv,
-            messages: [...conv.messages, newMessage],
-            lastMessage: content,
-            timestamp: new Date().toLocaleString()
-          };
-        }
-        return conv;
-      }));
-    }
-
-    setIsLoading(true);
-    setTimeout(() => {
-      if (Math.random() < 0.2) {
-        setError('Failed to send message. Please try again.');
-        setIsLoading(false);
-        return;
-      }
-      const response: MessageType = {
-        id: (Date.now() + 1).toString(),
-        content: 'This is a simulated response. In a real application, this would come from the backend API.',
-        isUser: false,
-        timestamp: new Date().toLocaleTimeString()
-      };
-      setConversations(prev => prev.map(conv => {
-        if (conv.id === activeConversation) {
-          return {
-            ...conv,
-            messages: [...conv.messages, response],
-            lastMessage: response.content,
-            timestamp: new Date().toLocaleString()
-          };
-        }
-        return conv;
-      }));
-      setIsLoading(false);
-    }, 1000);
-  };
-
-  const handleNewChat = () => {
-    setActiveConversation(undefined);
-    setError(null);
-  };
-
-  const handleSelectConversation = (id: string) => {
-    setActiveConversation(id);
-    setError(null);
-  };
-
-  const getCurrentMessages = () => {
-    if (!activeConversation) return [];
-    const conversation = conversations.find(conv => conv.id === activeConversation);
-    return conversation?.messages || [];
-  };
-
-  const conversationSummaries: ConversationSummary[] = conversations.map(conv => ({
-    id: conv.id,
-    title: conv.title,
-    lastMessage: conv.lastMessage,
-    timestamp: conv.timestamp,
-  }));
+  // Chat hooks
+  const { data: conversationSummaries = [], isLoading: loadingSummaries } = useConversationSummaries();
+  const { data: conversationDetails, isLoading: loadingDetails } = useConversationDetails(activeConversation);
+  const sendMessageMutation = useSendMessage();
 
   useEffect(() => {
     if (messagesEndRef.current) {
       messagesEndRef.current.scrollIntoView({ behavior: 'smooth' });
     }
-  }, [activeConversation, conversations]);
+  }, [activeConversation, conversationDetails]);
+
+  const handleSendMessage = async (content: string) => {
+    if (!content.trim()) return;
+    sendMessageMutation.mutate(
+      { conversationId: activeConversation, message: content },
+      {
+        onSuccess: (data) => {
+          if (data.graphData) setCurrentGraphData(data.graphData);
+          if (!activeConversation && data.conversationId) setActiveConversation(data.conversationId);
+        },
+      }
+    );
+  };
+
+  const handleNewChat = () => {
+    setActiveConversation(undefined);
+    setCurrentGraphData(null);
+  };
+
+  const handleSelectConversation = (id: string) => {
+    setActiveConversation(id);
+    setCurrentGraphData(null);
+  };
+
+  const getCurrentMessages = () => {
+    return conversationDetails?.messages || [];
+  };
 
   const handleLogoClick = () => {
     window.location.href = '/';
@@ -316,8 +263,10 @@ const ResearchAssistant: React.FC = () => {
                   <WelcomeTitle>Welcome to Research Assistant</WelcomeTitle>
                   <WelcomeSubtitle>How can I help you with your Drug Discovery Research today?</WelcomeSubtitle>
                 </Welcome>
+              ) : loadingDetails ? (
+                <div>Loading conversation...</div>
               ) : (
-                getCurrentMessages().map(message => (
+                getCurrentMessages().map((message: any) => (
                   <Message
                     key={message.id}
                     content={message.content}
@@ -329,7 +278,7 @@ const ResearchAssistant: React.FC = () => {
               <div ref={messagesEndRef} />
             </MessagesList>
             <ChatInputContainer>
-              <ChatInput onSend={handleSendMessage} disabled={isLoading} />
+              <ChatInput onSend={handleSendMessage} disabled={sendMessageMutation.status === 'pending'} />
             </ChatInputContainer>
           </ChatWindow>
         </Content>
@@ -342,7 +291,7 @@ const ResearchAssistant: React.FC = () => {
           <RightPanelHeader>PxLS Knowledge Graph</RightPanelHeader>
           <RightPanelContent>
             <MiniGraphContainer>
-              <GraphVisualization data={sampleKG as any} hideControls={true} />
+              <GraphVisualization data={currentGraphData} hideControls={true} />
             </MiniGraphContainer>
             <ExpandButton onClick={() => setShowGraphModal(true)}>
               Click to Expand
@@ -351,7 +300,7 @@ const ResearchAssistant: React.FC = () => {
         </CollapsibleSidebar>
         <Modal open={showGraphModal} onClose={() => setShowGraphModal(false)}>
           <ModalGraphArea>
-            <GraphVisualization data={sampleKG as any} hideControls={false} />
+            <GraphVisualization data={currentGraphData} hideControls={false} />
           </ModalGraphArea>
           <ModalFooter>
           </ModalFooter>
