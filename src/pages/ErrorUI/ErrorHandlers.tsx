@@ -66,6 +66,8 @@ const ErrorHandlers: React.FC<ErrorHandlersProps> = ({ error, info }) => {
       message: error.message,
       stack: error.stack,
       info,
+      timestamp: new Date().toISOString(),
+      severity: 'error'
     });
     setReported(true);
   };

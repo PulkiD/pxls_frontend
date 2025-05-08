@@ -1,4 +1,4 @@
-import type { SimulationNodeDatum } from 'd3';
+import type { SimulationNodeDatum, SimulationLinkDatum } from 'd3';
 
 export interface Evolution {
     [year: string]: number;
@@ -13,7 +13,7 @@ export interface NodeProperties {
     score?: number;
 }
 
-export interface Node extends SimulationNodeDatum {
+export interface Node {
     id: string;
     name: string;
     type: string;
@@ -25,8 +25,8 @@ export interface Relationship {
     target: string;
     relation: string;
     weight: number;
-    properties?: Record<string, string | number | boolean>;
     evolution?: Evolution;
+    properties?: Record<string, string | number | boolean>;
     isActive?: boolean;
 }
 
@@ -44,4 +44,15 @@ export interface GraphResponse {
 export interface GraphQuery {
     query: string;
     parameters?: Record<string, string | number | boolean | null>;
+}
+
+// D3 specific types
+export interface D3Node extends Node, SimulationNodeDatum {
+    fx: number | null;
+    fy: number | null;
+}
+
+export interface D3Link extends Omit<Relationship, 'source' | 'target'>, SimulationLinkDatum<D3Node> {
+    source: D3Node;
+    target: D3Node;
 } 

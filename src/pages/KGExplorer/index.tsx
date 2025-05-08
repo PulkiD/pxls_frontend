@@ -6,6 +6,7 @@ import CollapsibleSidebar from '../../components/CollapsibleSidebar';
 import GraphVisualization from '../../components/KGViz/GraphVisualization';
 import { useKnowledgeGraph } from '../../hooks/useKnowledgeGraph';
 import type { SavedQuery } from '../../types/kgApi.types';
+import type { GraphData } from '../../types/GraphVisualization.types.tsx';
 
 const PageContainer = styled.div`
   display: flex;

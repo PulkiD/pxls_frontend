@@ -1,6 +1,6 @@
 import React, { useEffect, useRef, useState } from 'react';
 import * as d3 from 'd3';
-import type { GraphData, Node, Relationship } from '../../types/GraphVisualization.types';
+import type { GraphData, Node, Relationship, D3Node, D3Link } from '../../types/GraphVisualization.types.tsx';
 import EvolutionControl from '../../features/NetworkEvolution/EvolutionControl';
 import { getNodeColors } from '../../constants/kgviz.constants';
 import styled from 'styled-components';
@@ -30,18 +30,6 @@ import {
   NodeTypeCheckbox,
   NodeTypeName
 } from './styles/GraphVisualization.styles';
-
-// Define D3-specific types here since they're only used in this file
-interface D3Node extends Node, d3.SimulationNodeDatum {
-  fx: number | null;
-  fy: number | null;
-}
-
-interface D3Link extends Omit<Relationship, 'source' | 'target'>, d3.SimulationLinkDatum<D3Node> {
-  source: D3Node;
-  target: D3Node;
-  isActive?: boolean;
-}
 
 interface GraphVisualizationProps {
   data: GraphData;
