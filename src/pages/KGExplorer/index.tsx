@@ -266,13 +266,22 @@ const KGExplorer: React.FC = () => {
     if (!executedQuery) return;
     
     try {
-      await saveQuery({
-        queryText: executedQuery,
-        description: `Query about ${executedQuery}`,
-        tags: ['saved'],
-      });
+      if (isQuerySaved) {
+        // Find the saved query to delete
+        const queryToDelete = savedQueries.find(q => q.queryText === executedQuery);
+        if (queryToDelete) {
+          await deleteQuery(queryToDelete.id);
+        }
+      } else {
+        // Save new query
+        await saveQuery({
+          queryText: executedQuery,
+          description: `Query about ${executedQuery}`,
+          tags: ['saved'],
+        });
+      }
     } catch (error) {
-      console.error('Failed to save query:', error);
+      console.error('Failed to toggle query save state:', error);
       // You might want to show a toast notification here
     }
   };
@@ -364,14 +373,14 @@ const KGExplorer: React.FC = () => {
             {graphData && Array.isArray(graphData.nodes) && Array.isArray(graphData.relationships) && !isLoading && !error && (
               <>
                 <SaveButton
-                  title={isQuerySaved ? 'Query saved' : 'Save this query'}
+                  title={isQuerySaved ? 'Remove from saved queries' : 'Save this query'}
                   onClick={handleSaveQuery}
                   style={{ 
                     color: isQuerySaved ? '#2563eb' : '#888',
-                    opacity: isSaving ? 0.5 : 1,
-                    cursor: isSaving ? 'not-allowed' : 'pointer',
+                    opacity: isSaving || isDeleting ? 0.5 : 1,
+                    cursor: isSaving || isDeleting ? 'not-allowed' : 'pointer',
                   }}
-                  disabled={isSaving}
+                  disabled={isSaving || isDeleting}
                 >
                   {isQuerySaved ? '★' : '☆'}
                 </SaveButton>
