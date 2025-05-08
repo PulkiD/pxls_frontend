@@ -31,6 +31,8 @@ const Content = styled.div`
   background: #fff;
   border-left: 1px solid #222;
   border-right: 1px solid #222;
+  min-height: 0;
+  overflow: hidden;
 `;
 
 const Welcome = styled.div`
@@ -55,6 +57,7 @@ const QueryInputContainer = styled.div`
   max-width: 900px;
   margin: 0 auto;
   padding-bottom: 2rem;
+  flex-shrink: 0;
 `;
 
 const MainGraphArea = styled.div`
@@ -65,6 +68,8 @@ const MainGraphArea = styled.div`
   background: #fff;
   position: relative;
   padding-left: 40px;
+  min-height: 0;
+  overflow: hidden;
 `;
 
 const SaveButton = styled.button`

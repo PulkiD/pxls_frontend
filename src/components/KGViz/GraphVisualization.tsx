@@ -53,12 +53,17 @@ const GraphContainer = styled.div`
   height: 100%;
   position: relative;
   background: #fff;
+  display: flex;
+  flex-direction: column;
+  overflow: hidden;
 `;
 
 // Add styled components for layout
 const ModalLayout = styled.div`
   display: flex;
   height: 100%;
+  min-height: 0;
+  flex: 1;
 `;
 const LeftSidebar = styled.div`
   width: 260px;
@@ -67,15 +72,19 @@ const LeftSidebar = styled.div`
   padding: 1.5rem 1rem 1rem 1.5rem;
   display: flex;
   flex-direction: column;
-  gap: 1.5rem; /* Adjusted gap */
+  gap: 1.5rem;
   z-index: 2;
-  overflow-y: auto; /* Allow sidebar to scroll if content overflows */
+  overflow-y: auto;
+  min-height: 0;
 `;
 const MainGraphArea = styled.div`
   flex: 1;
   position: relative;
   height: 100%;
+  min-height: 0;
   overflow: hidden;
+  display: flex;
+  flex-direction: column;
 `;
 
 const GraphVisualization: React.FC<GraphVisualizationProps> = ({ data, searchQuery, evolutionYear: evolutionYearProp, hideControls = false }) => {
@@ -193,7 +202,7 @@ const GraphVisualization: React.FC<GraphVisualizationProps> = ({ data, searchQue
       relationships: data.relationships.length,
       filteredNodeCount: currentFilteredData.nodes.length,
       filteredRelCount: currentFilteredData.relationships.length,
-      evolutionYearUsed: currentEvolutionYear // Log the year being used
+      evolutionYearUsed: currentEvolutionYear
     });
 
     d3.select(svgRef.current).selectAll('*').remove();
@@ -201,8 +210,14 @@ const GraphVisualization: React.FC<GraphVisualizationProps> = ({ data, searchQue
     const container = svgRef.current.parentElement;
     if (!container) return;
 
-    const width = container.clientWidth;
-    const height = container.clientHeight;
+    // Get the computed style to account for padding/borders
+    const containerStyle = window.getComputedStyle(container);
+    const width = container.clientWidth - 
+      parseFloat(containerStyle.paddingLeft) - 
+      parseFloat(containerStyle.paddingRight);
+    const height = container.clientHeight - 
+      parseFloat(containerStyle.paddingTop) - 
+      parseFloat(containerStyle.paddingBottom);
 
     const svg = d3.select(svgRef.current)
       .attr('width', width)
