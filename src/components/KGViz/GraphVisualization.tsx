@@ -1,20 +1,53 @@
 import React, { useEffect, useRef, useState } from 'react';
 import * as d3 from 'd3';
-// Assuming types are in a 'types' folder relative to the component or project root
 import type { GraphData, Node, Relationship } from '../../types/GraphVisualization.types';
-import EvolutionControl from '../../features/NetworkEvolution/EvolutionControl'; // Re-add import
-
-// Assuming config is in a 'config' folder relative to the component or project root
-import { getNodeColors } from '../../constants/kgviz.constants'; // Adjust path as needed
-
+import EvolutionControl from '../../features/NetworkEvolution/EvolutionControl';
+import { getNodeColors } from '../../constants/kgviz.constants';
 import styled from 'styled-components';
+import NodeInfoPanel from './NodeInfoPanel';
+import EdgeInfoPanel from './EdgeInfoPanel';
+import {
+  setupSVG,
+  setupMarkers,
+  createD3Nodes,
+  createD3Links,
+  renderLinks,
+  renderNodes,
+  initializeSimulation
+} from './d3GraphUtils';
+import {
+  GraphContainer,
+  ModalLayout,
+  LeftSidebar,
+  MainGraphArea,
+  SidebarSection,
+  SectionTitle,
+  StatsContainer,
+  StatItem,
+  StatValue,
+  NodeTypeList,
+  NodeTypeLabel,
+  NodeTypeCheckbox,
+  NodeTypeName
+} from './styles/GraphVisualization.styles';
+
+// Define D3-specific types here since they're only used in this file
+interface D3Node extends Node, d3.SimulationNodeDatum {
+  fx: number | null;
+  fy: number | null;
+}
+
+interface D3Link extends Omit<Relationship, 'source' | 'target'>, d3.SimulationLinkDatum<D3Node> {
+  source: D3Node;
+  target: D3Node;
+  isActive?: boolean;
+}
 
 interface GraphVisualizationProps {
   data: GraphData;
   searchQuery?: string;
   evolutionYear?: number | null;
-  // Add a prop to hide controls if needed, for uses like the mini-graph
-  hideControls?: boolean; 
+  hideControls?: boolean;
 }
 
 // Get node colors from configuration
@@ -31,61 +64,6 @@ interface EdgeInfo {
   x: number;
   y: number;
 }
-
-// D3 specific node type, extending the base Node type
-interface D3Node extends Node, d3.SimulationNodeDatum {
-  // x, y, vx, vy, fx, fy are added by d3 simulation
-  // Explicitly define fx and fy as they are used for fixing node positions
-  fx: number | null;
-  fy: number | null;
-}
-
-// D3 specific link type, extending the base Relationship type
-interface D3Link extends Omit<Relationship, 'source' | 'target'>, d3.SimulationLinkDatum<D3Node> {
-  source: D3Node; // In D3, source and target are D3Node objects after processing
-  target: D3Node;
-  isActive?: boolean; // Custom property for evolution filtering
-}
-
-// Add a styled container for modularity
-const GraphContainer = styled.div`
-  width: 100%;
-  height: 100%;
-  position: relative;
-  background: #fff;
-  display: flex;
-  flex-direction: column;
-  overflow: hidden;
-`;
-
-// Add styled components for layout
-const ModalLayout = styled.div`
-  display: flex;
-  height: 100%;
-  min-height: 0;
-  flex: 1;
-`;
-const LeftSidebar = styled.div`
-  width: 260px;
-  background: #f7f7f7;
-  border-right: 1px solid #e5e7eb;
-  padding: 1.5rem 1rem 1rem 1.5rem;
-  display: flex;
-  flex-direction: column;
-  gap: 1.5rem;
-  z-index: 2;
-  overflow-y: auto;
-  min-height: 0;
-`;
-const MainGraphArea = styled.div`
-  flex: 1;
-  position: relative;
-  height: 100%;
-  min-height: 0;
-  overflow: hidden;
-  display: flex;
-  flex-direction: column;
-`;
 
 const GraphVisualization: React.FC<GraphVisualizationProps> = ({ data, searchQuery, evolutionYear: evolutionYearProp, hideControls = false }) => {
   // Defensive: If data is missing or malformed, show an error message
@@ -175,18 +153,15 @@ const GraphVisualization: React.FC<GraphVisualizationProps> = ({ data, searchQue
         };
       });
     } else {
-        // If no year is selected, all relationships are considered active by default
-        // or explicitly mark them based on whether isActive was part of the original data or not.
-        // Assuming if evolutionYear is null, evolution filtering is off.
-        filteredRelationships = filteredRelationships.map(rel => ({
-            ...rel,
-            isActive: true // Default to active if no year is selected
-        }));
+      filteredRelationships = filteredRelationships.map(rel => ({
+        ...rel,
+        isActive: true
+      }));
     }
 
     return {
       nodes: filteredNodes,
-      relationships: filteredRelationships as (Relationship & { isActive?: boolean })[] // Ensure type for isActive
+      relationships: filteredRelationships
     };
   }, [data, nodeTypeFilter, allNodeTypes.length, currentEvolutionYear]);
 
@@ -210,192 +185,63 @@ const GraphVisualization: React.FC<GraphVisualizationProps> = ({ data, searchQue
     const container = svgRef.current.parentElement;
     if (!container) return;
 
-    // Get the computed style to account for padding/borders
-    const containerStyle = window.getComputedStyle(container);
-    const width = container.clientWidth - 
-      parseFloat(containerStyle.paddingLeft) - 
-      parseFloat(containerStyle.paddingRight);
-    const height = container.clientHeight - 
-      parseFloat(containerStyle.paddingTop) - 
-      parseFloat(containerStyle.paddingBottom);
-
-    const svg = d3.select(svgRef.current)
-      .attr('width', width)
-      .attr('height', height)
-      .attr('viewBox', [0, 0, width, height]);
-
-    const g = svg.append('g');
-
-    const zoom = d3.zoom<SVGSVGElement, unknown>()
-      .scaleExtent([0.1, 4])
-      .on('zoom', (event) => {
-        g.attr('transform', event.transform);
-      });
-
-    svg.call(zoom);
+    // Setup SVG and get dimensions
+    const { svg, g, width, height } = setupSVG(svgRef, container);
     
-    const d3Nodes: D3Node[] = currentFilteredData.nodes.map(node => ({
-      ...node,
-      x: width / 2 + (Math.random() - 0.5) * 200,
-      y: height / 2 + (Math.random() - 0.5) * 200,
-      fx: null,
-      fy: null
-    }));
+    // Setup markers for links
+    setupMarkers(svg);
 
+    // Create D3 nodes and links
+    const d3Nodes = createD3Nodes(currentFilteredData.nodes, width, height);
     const nodeMap = new Map<string, D3Node>();
     d3Nodes.forEach(node => nodeMap.set(node.id, node));
-
-    const d3Links = currentFilteredData.relationships
-      .map(rel => {
-        const source = nodeMap.get(rel.source);
-        const target = nodeMap.get(rel.target);
-        if (!source || !target) return null;
-        return {
-          ...rel,
-          source,
-          target,
-          isActive: typeof rel.isActive === 'boolean' ? rel.isActive : true // always boolean
-        };
-      })
-      .filter(Boolean) as D3Link[];
+    const d3Links = createD3Links(currentFilteredData.relationships, nodeMap);
 
     console.log("D3 data prepared:", { nodes: d3Nodes.length, links: d3Links.length });
 
-    svg.append('defs').selectAll('marker')
-      .data(['end', 'end-inactive'])
-      .join('marker')
-      .attr('id', d => d === 'end' ? 'arrow' : 'arrow-inactive')
-      .attr('viewBox', '0 -5 10 10')
-      .attr('refX', 30)
-      .attr('refY', 0)
-      .attr('markerWidth', 6)
-      .attr('markerHeight', 6)
-      .attr('orient', 'auto')
-      .append('path')
-      .attr('d', 'M0,-5L10,0L0,5')
-      .attr('fill', d => d === 'end' ? '#999' : '#444');
-      
-    const linkElements = g.append('g')
-      .attr('class', 'links')
-      .selectAll('line')
-      .data(d3Links)
-      .join('line')
-      .attr('stroke', '#222') // Always black for visibility
-      .attr('stroke-opacity', d => d.isActive !== false ? 0.8 : 0.3)
-      .attr('stroke-width', 2)
-      .attr('marker-end', d => d.isActive !== false ? 'url(#arrow)' : 'url(#arrow-inactive)')
-      .style('cursor', 'pointer');
-
-    linkElements.append('line')
-      .attr('stroke', d => d.isActive !== false ? '#ffffff' : '#444444')
-      .attr('stroke-opacity', d => d.isActive !== false ? 0.6 : 0.3)
-      .attr('stroke-width', 2)
-      .attr('marker-end', d => d.isActive !== false ? 'url(#arrow)' : 'url(#arrow-inactive)')
-      .style('cursor', 'pointer')
-      .on('click', (event, d: D3Link) => {
-        event.stopPropagation();
-        const [xCoord, yCoord] = d3.pointer(event, svg.node());
-        setSelectedEdge(prev => (prev?.edge.source.id === d.source.id && prev?.edge.target.id === d.target.id && prev?.edge.relation === d.relation) ? null : { edge: d, x: xCoord, y: yCoord });
-        setSelectedNode(null);
-      });
-
-    const linkLabels = linkElements
-      .append('g')
-      .attr('class', 'link-label')
-      .style('opacity', d => d.isActive !== false ? 1 : 0.5);
-
-    linkLabels.append('rect')
-      .attr('fill', '#e5e7eb')
-      .attr('opacity', 0.8)
-      .attr('rx', 4)
-      .attr('ry', 4);
-
-    linkLabels.append('text')
-      .text(d => d.relation)
-      .attr('text-anchor', 'middle')
-      .attr('dominant-baseline', 'middle')
-      .attr('fill', '#222') // Black text for visibility
-      .style('font-size', '10px')
-      .style('pointer-events', 'none')
-      .each(function(this: SVGTextElement) {
-        const bbox = this.getBBox();
-        const parent = this.parentElement;
-        if (parent) {
-          d3.select(parent)
-            .select('rect')
-            .attr('x', bbox.x - 4)
-            .attr('y', bbox.y - 2)
-            .attr('width', bbox.width + 8)
-            .attr('height', bbox.height + 4);
-        }
-      });
-
-    const nodeElements = g.append('g')
-      .attr('class', 'nodes')
-      .selectAll<SVGGElement, D3Node>('g.node-group') // More specific selector
-      .data(d3Nodes, d => d.id) // Add key function
-      .join('g')
-      .attr('class', 'node-group');
-
-    nodeElements.append('circle')
-      .attr('r', 20)
-      .attr('fill', d => nodeColors[d.type] || '#999')
-      .attr('stroke', '#fff')
-      .attr('stroke-width', 2);
-
-    nodeElements.append('text')
-      .text(d => d.name)
-      .attr('text-anchor', 'middle')
-      .attr('dy', 30) // Position label below the circle
-      .attr('fill', '#222') // Black text for node names
-      .style('font-size', '12px');
-
-    nodeElements.on('click', (event, d: D3Node) => {
+    // Event handlers
+    const handleNodeClick = (event: MouseEvent, d: D3Node) => {
       event.stopPropagation();
       const [xCoord, yCoord] = d3.pointer(event, svg.node());
       setSelectedNode(prev => prev?.node.id === d.id ? null : { node: d, x: xCoord, y: yCoord });
       setSelectedEdge(null);
-    });
+    };
 
-    svg.on('click', (event) => {
-      if (event.target === svg.node()) {
-        setSelectedNode(null);
-        setSelectedEdge(null);
-      }
-    });
+    const handleLinkClick = (event: MouseEvent, d: D3Link) => {
+      event.stopPropagation();
+      const [xCoord, yCoord] = d3.pointer(event, svg.node());
+      setSelectedEdge(prev => (prev?.edge.source.id === d.source.id && prev?.edge.target.id === d.target.id && prev?.edge.relation === d.relation) ? null : { edge: d, x: xCoord, y: yCoord });
+      setSelectedNode(null);
+    };
 
-    const drag = d3.drag<SVGGElement, D3Node>()
-      .on('start', (event, d) => {
-        if (!event.active) simulation.alphaTarget(0.3).restart();
-        d.fx = d.x ?? null;
-        d.fy = d.y ?? null;
-      })
-      .on('drag', (event, d) => {
-        d.fx = event.x;
-        d.fy = event.y;
-      })
-      .on('end', (event, d) => {
-        if (!event.active) simulation.alphaTarget(0);
-        d.fx = null;
-        d.fy = null;
-      });
+    const handleDragStart = (event: d3.D3DragEvent<SVGGElement, D3Node, D3Node>, d: D3Node) => {
+      if (!event.active) simulation.alphaTarget(0.3).restart();
+      d.fx = d.x ?? null;
+      d.fy = d.y ?? null;
+    };
 
-    nodeElements.call(drag as any); // Use 'as any' if type issues with D3 drag and React/TS
+    const handleDrag = (event: d3.D3DragEvent<SVGGElement, D3Node, D3Node>, d: D3Node) => {
+      d.fx = event.x;
+      d.fy = event.y;
+    };
 
-    const simulation = d3.forceSimulation<D3Node>(d3Nodes)
-      .force('link', d3.forceLink<D3Node, D3Link>(d3Links)
-        .id(d => d.id)
-        .distance(200))
-      .force('charge', d3.forceManyBody().strength(-1000))
-      .force('collide', d3.forceCollide().radius(50)) // Radius should be larger than node radius to prevent overlap
-      .force('center', d3.forceCenter(width / 2, height / 2));
+    const handleDragEnd = (event: d3.D3DragEvent<SVGGElement, D3Node, D3Node>, d: D3Node) => {
+      if (!event.active) simulation.alphaTarget(0);
+      d.fx = null;
+      d.fy = null;
+    };
 
-    simulation.on('tick', () => {
+    // Render links and nodes
+    const { linkElements, linkLabels } = renderLinks(g, d3Links, handleLinkClick);
+    const nodeElements = renderNodes(g, d3Nodes, nodeColors, handleNodeClick, handleDragStart, handleDrag, handleDragEnd);
+
+    // Setup simulation
+    const simulation = initializeSimulation(d3Nodes, d3Links, width, height, () => {
       linkElements
-        .attr('x1', d => d && d.source ? d.source.x! : 0)
-        .attr('y1', d => d && d.source ? d.source.y! : 0)
-        .attr('x2', d => d && d.target ? d.target.x! : 0)
-        .attr('y2', d => d && d.target ? d.target.y! : 0);
+        .attr('x1', d => d.source.x!)
+        .attr('y1', d => d.source.y!)
+        .attr('x2', d => d.target.x!)
+        .attr('y2', d => d.target.y!);
 
       linkLabels.attr('transform', d => {
         return `translate(${(d.source.x! + d.target.x!) / 2},${(d.source.y! + d.target.y!) / 2})`;
@@ -404,38 +250,42 @@ const GraphVisualization: React.FC<GraphVisualizationProps> = ({ data, searchQue
       nodeElements.attr('transform', d => `translate(${d.x},${d.y})`);
     });
 
-    // It's usually not recommended to manually run simulation like this for too long.
-    // simulation.alpha(1).restart(); // Restarting alpha might be better done once after setup.
-
+    // Cleanup
     return () => {
       simulation.stop();
-      // Clean up D3 elements and event listeners if necessary, though React unmounting should handle SVG
-      g.selectAll('*').remove(); // Clear group content
-      svg.on('.zoom', null); // Remove zoom listener
-      svg.on('click', null); // Remove svg click listener
+      g.selectAll('*').remove();
+      svg.on('.zoom', null);
+      svg.on('click', null);
     };
-  }, [data, nodeTypeFilter, getFilteredData, currentEvolutionYear]); // Add currentEvolutionYear to dependencies of D3 effect
+  }, [data, nodeTypeFilter, getFilteredData, currentEvolutionYear]);
 
   const filteredDataForStats = getFilteredData(); // Call once for stats display
 
   return (
     <GraphContainer>
       <ModalLayout>
-        {!hideControls && ( // Conditionally render LeftSidebar
+        {!hideControls && (
           <LeftSidebar>
             {/* Stats Section */}
-            <div>
-              <h4 style={{ fontWeight: 600, marginBottom: 8 }}>Graph Stats</h4>
-              <div style={{ fontSize: '0.97rem', color: '#333', marginBottom: 4 }}>Nodes: <b>{filteredDataForStats.nodes.length}</b></div>
-              <div style={{ fontSize: '0.97rem', color: '#333' }}>Edges: <b>{filteredDataForStats.relationships.length}</b></div>
-            </div>
+            <SidebarSection>
+              <SectionTitle>Graph Stats</SectionTitle>
+              <StatsContainer>
+                <StatItem>
+                  Nodes: <StatValue>{filteredDataForStats.nodes.length}</StatValue>
+                </StatItem>
+                <StatItem>
+                  Edges: <StatValue>{filteredDataForStats.relationships.length}</StatValue>
+                </StatItem>
+              </StatsContainer>
+            </SidebarSection>
+
             {/* Node Type Filter */}
-            <div>
-              <h4 style={{ fontWeight: 600, marginBottom: 8 }}>Node Types</h4>
-              <div style={{ display: 'flex', flexDirection: 'column', gap: 6 }}>
+            <SidebarSection>
+              <SectionTitle>Node Types</SectionTitle>
+              <NodeTypeList>
                 {allNodeTypes.map(type => (
-                  <label key={type} style={{ display: 'flex', alignItems: 'center', fontSize: '0.97rem', color: '#444', marginBottom: 2 }}>
-                    <input
+                  <NodeTypeLabel key={type}>
+                    <NodeTypeCheckbox
                       type="checkbox"
                       checked={nodeTypeFilter.includes(type)}
                       onChange={e => {
@@ -445,83 +295,39 @@ const GraphVisualization: React.FC<GraphVisualizationProps> = ({ data, searchQue
                           setNodeTypeFilter(prev => prev.filter(t => t !== type));
                         }
                       }}
-                      style={{ marginRight: 8 }}
                     />
-                    <span style={{ color: nodeColors[type] || '#333', fontWeight: 500 }}>{type}</span>
-                  </label>
+                    <NodeTypeName color={nodeColors[type] || '#333'}>{type}</NodeTypeName>
+                  </NodeTypeLabel>
                 ))}
-              </div>
-            </div>
-            {/* EvolutionControl moved to LeftSidebar */}
-            <div>
-              <h4 style={{ fontWeight: 600, marginBottom: 8 }}>Evolution View</h4>
+              </NodeTypeList>
+            </SidebarSection>
+
+            {/* EvolutionControl */}
+            <SidebarSection>
+              <SectionTitle>Evolution View</SectionTitle>
               <EvolutionControl 
                 minYear={minYear} 
                 maxYear={maxYear} 
-                onYearChange={setCurrentEvolutionYear} // Update internal state
+                onYearChange={setCurrentEvolutionYear}
               />
-            </div>
+            </SidebarSection>
           </LeftSidebar>
         )}
         <MainGraphArea>
           <svg ref={svgRef} style={{ width: '100%', height: '100%' }} />
           {selectedNode && (
-            <div 
-              className="absolute bg-gray-900 bg-opacity-90 border border-gray-700 rounded-lg p-4 shadow-xl"
-              style={{
-                left: `${selectedNode.x + 20}px`,
-                top: `${selectedNode.y}px`,
-                maxWidth: '300px',
-                zIndex: 1000
-              }}
-            >
-              <h3 className="text-lg font-semibold text-white mb-2">{selectedNode.node.name}</h3>
-              <div className="space-y-2">
-                <p className="text-sm text-gray-400">Type: <span className="text-white">{selectedNode.node.type}</span></p>
-                {Object.entries(selectedNode.node.properties || {}).map(([key, value]) => (
-                  <p key={key} className="text-sm text-gray-400">
-                    {key}: <span className="text-white">{String(value)}</span>
-                  </p>
-                ))}
-              </div>
-            </div>
+            <NodeInfoPanel
+              node={selectedNode.node}
+              x={selectedNode.x}
+              y={selectedNode.y}
+            />
           )}
           {selectedEdge && (
-            <div 
-              className="absolute bg-gray-900 bg-opacity-90 border border-gray-700 rounded-lg p-4 shadow-xl"
-              style={{
-                left: `${selectedEdge.x + 20}px`,
-                top: `${selectedEdge.y}px`,
-                maxWidth: '350px',
-                zIndex: 1000
-              }}
-            >
-              <h3 className="text-lg font-semibold text-white mb-2">Relationship</h3>
-              <div className="space-y-2">
-                <p className="text-sm text-gray-400">Type: <span className="text-white">{selectedEdge.edge.relation}</span></p>
-                <p className="text-sm text-gray-400">From: <span className="text-white">{selectedEdge.edge.source.name}</span></p>
-                <p className="text-sm text-gray-400">To: <span className="text-white">{selectedEdge.edge.target.name}</span></p>
-                <p className="text-sm text-gray-400">Weight: <span className="text-white">{selectedEdge.edge.weight}</span></p>
-                {selectedEdge.edge.evolution && (
-                  <div className="text-sm text-gray-400">
-                    Evolution:
-                    <ul style={{ marginLeft: 12 }}>
-                      {Object.entries(selectedEdge.edge.evolution).map(([year, value]) => (
-                        <li key={year}><span className="text-white">{year}: {value}</span></li>
-                      ))}
-                    </ul>
-                  </div>
-                )}
-                {Object.entries(selectedEdge.edge.properties || {}).map(([key, value]) => (
-                  <p key={key} className="text-sm text-gray-400">
-                    {key}: <span className="text-white">{String(value)}</span>
-                  </p>
-                ))}
-                {selectedEdge.edge.isActive !== undefined && (
-                  <p className="text-sm text-gray-400">Status: <span className="text-white">{selectedEdge.edge.isActive ? 'Active' : 'Inactive'}</span></p>
-                )}
-              </div>
-            </div>
+            <EdgeInfoPanel
+              edge={selectedEdge.edge}
+              x={selectedEdge.x}
+              y={selectedEdge.y}
+            />
           )}
         </MainGraphArea>
       </ModalLayout>
